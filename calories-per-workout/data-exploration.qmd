@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Load data
+df <- read.csv(file = 'data/train.csv')
+head(df) # also shows types
+```
+
+## Cleaning and Preprocessing
+
+```{r}
+# Missing values
+missing_values <- as.data.frame(colSums(is.na(df)))
+colnames(missing_values) <- 'Number of Missing Values'
+missing_values
+```
+
+```{r}
+# Set 'id' as index
+rownames(df) <- df$id
+df <- df %>% select(-'id')
+head(df)
+```
+
+```{r}
+# Remove Duplicates
+cat(paste(
+  'Initial Data Frame Shape = ', '(', nrow(df), ', ', ncol(df), ')', '.',
+  collapse='', sep = ''
+  )
+)
+cat('\n')
+
+df = distinct(df)
+
+cat(paste(
+  'Final Data Frame Shape = ', '(', nrow(df), ', ', ncol(df), ')', '.',
+  collapse='', sep = ''
+  )
+)
+```
+
+## EDA
+
+### Univariate Analysis
