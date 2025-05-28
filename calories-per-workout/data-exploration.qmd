@@ -1,8 +1,10 @@
 ---
-title: "Untitled"
+title: "Calory Lost Prediction"
 format: html
 editor: visual
 ---
+
+## Initialization
 
 ```{r}
 library(tidyverse)
@@ -12,6 +14,52 @@ library(tidyverse)
 # Load data
 df <- read.csv(file = 'data/train.csv')
 head(df) # also shows types
+```
+
+```{r}
+# Custom Evaluation Metric
+RMSLE <- function(y_real, y_pred) {
+  N <- length(y_real) # number of cases (real ones)
+  
+  # Check if both are the same length
+  if (N != length(y_pred)) {
+    print('Error: predictions and real values are not the same length')
+  } else {
+    # Compute summation
+    summation <- 0
+    for (i in c(1:N)) {
+      summation <- summation + (log(1 + y_pred[[i]]) - log(1 + y_real[[i]]))^2
+    }
+    
+    # Compute RMSLE
+    return(
+      sqrt(1/N * summation)
+    )
+  }
+}
+```
+
+```{r}
+# Train+validation and test samples sizes
+sample_size_train_val <- floor(0.8 * nrow(df))
+sample_size_test <- floor(0.2 * nrow(df))
+
+# Get indices: train and test
+idx_train_val <- sort(sample(seq_len(nrow(df)), size = sample_size_train_val))
+idx_test <- setdiff(seq_len(nrow(df)), idx_train_val)
+
+# Extract validation subset from train
+idx_validation <- sort(
+  sample(idx_train_val, size = sample_size_test) # same size as test
+) 
+
+# Update train, so it does not include validation
+idx_train <- setdiff(idx_train_val, idx_validation)
+
+# Create three dataframes: training, validation and test
+df.train <- df[idx_train, ]
+df.val <- df[idx_validation, ]
+df.test <- df[idx_test, ]
 ```
 
 ## Cleaning and Preprocessing
@@ -51,3 +99,154 @@ cat(paste(
 ## EDA
 
 ### Univariate Analysis
+
+```{r}
+df %>% 
+  select_if(is.numeric) %>% 
+  apply(2, summary)
+```
+
+-   Workouts with a caloric loss of 1.0 seems strange.
+
+```{r}
+# Is the data balanced in 'Sex'?
+df %>% 
+  select('Sex') %>% 
+  table() %>% 
+  prop.table()
+```
+
+-   It is balanced.
+
+```{r}
+# Outliers
+par(mar=c(3,7,1,1)) # margins (long names)
+df %>% 
+  select_if(is.numeric) %>% 
+  boxplot(horizontal = TRUE, las=2)
+```
+
+```{r}
+# Outliers
+df %>% 
+  pivot_longer(cols = -'Sex', names_to = 'Variable', values_to = 'Value') %>% 
+  ggplot(aes(x=Value, y=Variable, fill=Sex, color=Sex)) +
+  geom_boxplot() +
+  scale_fill_manual(values=alpha(c('salmon', 'skyblue'), .3))
+```
+
+-   Body_Temp has little variability.
+
+-   Height and Weight show the biggest amount of outliers.
+
+```{r}
+# Standard Deviation
+df %>% 
+  select_if(is.numeric) %>% 
+  apply(2, sd)
+```
+
+```{r}
+# Get numerical variables names
+col_names <- df %>% 
+  select_if(is.numeric) %>% 
+  colnames()
+
+# Plot all numerical variables
+for (col_name in col_names) {
+  # Title label text
+  title <- paste(col_name, 'histogram and density function splitted by Sex')
+  
+  # Histogram and Density Plot by 'Sex'
+  plt <- df %>% 
+    ggplot(aes(x=.data[[col_name]])) +
+    geom_histogram(aes(y=..density..), fill='black', alpha=.4) +
+    geom_density(aes(color=Sex), size=1.2) +
+    labs(title=title, x=col_name) +
+    theme_minimal() 
+  print(plt)
+}
+
+```
+
+-   Mostly the same, except for 'Weight', 'Height', 'Body_Temp' (slightly) and 'Calories'.
+
+    -   **Weight and Height:** Men tend to be taller and heavier than women.
+
+    -   **Calories:** Women tend to lose an intermediate amount of calories, while men populate the highest and lowest values more.
+
+    -   **Body_Temp:** There seems to be a slightly higher amount of women at higher body temperatures than men.
+
+-   Age, Body_Temp and Calories show skewness, and Height and Weight don't, but they are best centered separated by Sex.
+
+### Bivariate Analysis
+
+```{r}
+# Correlation matrix
+corr <- cor(df %>% select_if(is.numeric))
+as.data.frame(head(corr))
+```
+
+```{r}
+# Plot correlation matrix
+corrplot::corrplot(corr, method='shade', order='hclust', addrect=2)
+```
+
+-   Calories is heavily related to the duration of the workout, and by the heart rate and body temperature during it.
+
+-   Height, weight and age do not correlate well with the target variable.
+
+-   Height and weight are heavily correlated, same with body temperature and duration.
+
+-   Age does not correlate well with any other variable. It shows that the scope by age is wide, but also that the impact in calories may not be determined by it.
+
+```{r}
+name_pairs <- list(
+  c('Height', 'Weight'), 
+  c('Body_Temp', 'Duration'),
+  c('Body_Temp', 'Heart_Rate'),
+  c('Body_Temp', 'Calories'),
+  c('Heart_Rate', 'Calories'),
+  c('Duration', 'Calories')
+)
+
+# Scatter plots
+for (name_vec in name_pairs) {
+  # Get names
+  name1 <- name_vec[[1]]
+  name2 <- name_vec[[2]]
+  
+  # Plot
+  plt <- df %>% 
+    sample_n(1e4) %>% 
+    ggplot(aes(x=.data[[name1]], y=.data[[name2]])) + 
+    geom_point(alpha = 0.2, size=1)
+  print(plt)
+}
+
+```
+
+-   Exponential relationship between Body_temp and Calories. Transforming Body_Temp should improve predictions, although it could obtain a higher correlation with duration as well.
+
+-   Linear relationship between Heart_Rate and Calories with stable variability.
+
+-   Approximately linear relationship between Duration and Calories, but data variability increases with Duration.
+
+### Multivariate Analysis
+
+```{r}
+# Extract p-value from linear model
+m.lm <- lm('Calories ~ . - id', df.train)
+summary(m.lm)
+
+# Print custom evaluation metric
+pred <- as.vector(predict(m.lm, df.test))
+pred[pred<0] <- 0 # Remove negative calory prediction
+print(paste('RMSLE =', round(RMSLE(df.test$Calories, pred), 4)))
+```
+
+-   As of 28/05/2025 the best has a RMSLE score of 0.05624.
+
+## Feature Engineering and Variable Selection
+
+### Variable Transforms
