@@ -12,8 +12,9 @@ library(tidyverse)
 
 ```{r}
 # Load data
-df <- read.csv(file = 'data/train.csv')
+df <- read.csv(file = 'data/train.csv') %>% select(-id)
 head(df) # also shows types
+dim(df)
 ```
 
 ```{r}
@@ -120,14 +121,6 @@ df %>%
 
 ```{r}
 # Outliers
-par(mar=c(3,7,1,1)) # margins (long names)
-df %>% 
-  select_if(is.numeric) %>% 
-  boxplot(horizontal = TRUE, las=2)
-```
-
-```{r}
-# Outliers
 df %>% 
   pivot_longer(cols = -'Sex', names_to = 'Variable', values_to = 'Value') %>% 
   ggplot(aes(x=Value, y=Variable, fill=Sex, color=Sex)) +
@@ -138,13 +131,6 @@ df %>%
 -   Body_Temp has little variability.
 
 -   Height and Weight show the biggest amount of outliers.
-
-```{r}
-# Standard Deviation
-df %>% 
-  select_if(is.numeric) %>% 
-  apply(2, sd)
-```
 
 ```{r}
 # Get numerical variables names
@@ -177,7 +163,7 @@ for (col_name in col_names) {
 
     -   **Body_Temp:** There seems to be a slightly higher amount of women at higher body temperatures than men.
 
--   Age, Body_Temp and Calories show skewness, and Height and Weight don't, but they are best centered separated by Sex.
+-   Age, Body_Temp and Calories show skewness, and Height and Weight don't, but they are best centred separated by Sex.
 
 ### Bivariate Analysis
 
@@ -249,4 +235,184 @@ print(paste('RMSLE =', round(RMSLE(df.test$Calories, pred), 4)))
 
 ## Feature Engineering and Variable Selection
 
-### Variable Transforms
+### Box-Cox Transform: Reduce Skewness
+
+First, let's perform Anderson-Darling Tests to discover which variables are mathematically skewed.
+
+```{r} 
+# Anderson-Darling Test 
+library(nortest)  
+
+test_normality <- function(x) {   
+  # Ensure complete data   
+  if ( all(!is.na(x)) && length(unique(x)) > 1 ) { 
+    # Perform Kolmogorov-Smirnov Test     
+    return( ad.test(x)$p.value )   
+  } else {     
+    return(NA)   
+  } 
+}  
+
+# Apply to all numeric columns (except target variable) 
+normality <- df.train %>%    
+  summarise(across(     
+    where(is.numeric) & !Calories, test_normality_ks 
+  )) %>%    
+  pivot_longer(everything(), names_to = 'Variable', values_to = 'p_value')
+
+# Identify variables that need transformation (p-value < 0.05)
+vars_need_transform <- normality %>% 
+  filter(p_value < 0.05 & !is.na(p_value)) %>% 
+  pull(Variable)
+
+cat(paste0(
+  'Variables needing transformation:\n',
+  paste(vars_need_transform, collapse = ', '),
+  '.'
+))
+```
+
+```{r}
+# Visual assessment
+df.train %>% 
+  select(where(is.numeric), -Calories) %>% 
+  sample_n(1e3) %>% 
+  pivot_longer(everything(), names_to = 'Variable', values_to = 'Value') %>% 
+  
+  ggplot(aes(sample = Value)) +
+  stat_qq() + 
+  stat_qq_line(color = 'red') +
+  facet_wrap(~Variable, scales = 'free') +
+  
+  theme_minimal() + 
+  labs(title = 'Q-Q Plots for Normality Assessment')
+```
+
+```{r}
+# Transform
+library(forecast)
+df.train_trans <- df.train
+
+for (var in vars_need_transform) {
+  if(all( df.train[[var]] > 0, na.rm = T )) {
+    lambda <- BoxCox.lambda(df.train %>% sample_n(1e5) %>% select(all_of(var)))
+    df.train_trans[[paste0(var)]] <- BoxCox(df.train[[var]], lambda)
+  }
+}
+
+df.train_trans %>% 
+  select(where(is.numeric), -Calories) %>% 
+  sample_n(1e3) %>% 
+  pivot_longer(everything(), names_to = 'Variable', values_to = 'Value') %>% 
+  
+  ggplot(aes(sample = Value)) +
+  stat_qq() + 
+  stat_qq_line(color = 'red') +
+  facet_wrap(~Variable, scales = 'free') +
+  
+  theme_minimal() + 
+  labs(title = 'Q-Q Plots for Normality Assessment')
+```
+
+
+
+### Standardization
+
+```{r}
+numeric_vars <- setdiff(df.train %>% select_if(is.numeric) %>% names(),
+                        'Calories')
+df.train <- df.train %>% 
+  mutate(
+    across(
+      where(is.numeric) & !Calories, 
+      ~(scale(.) %>% as.vector())
+    )
+  )
+
+df.val <- df.val %>% 
+  mutate(across(
+    where(is.numeric) & !Calories,
+    ~(scale(.) %>% as.vector())
+  ))
+head(df.train)
+```
+
+### Variable Transforms: Body_Temp
+
+```{r}
+# Exponentiate Body_Temp
+exponentiate_body_temp <- function(data) {
+  return(
+    exp( data$Body_Temp )
+  )
+}
+
+df.train['exp_Body_Temp'] <- exponentiate_body_temp(df.train)
+df.val['exp_Body_Temp'] <- exponentiate_body_temp(df.val)
+
+# Plot against Calories
+df.train %>% 
+  sample_n(1e4) %>% 
+  ggplot() +
+  # geom_point(aes(x=Body_Temp, y=Calories), alpha=.3) +
+  geom_point(aes(x=exp_Body_Temp, y=Calories), alpha=.3, color='red') 
+```
+
+## Clustering: KMeans
+
+```{r}
+m.kmeans <- kmeans(df.train %>% select_if(is.numeric), centers = 4, nstart = 25)
+```
+
+```{r}
+df.train$cluster <- as.factor(m.kmeans$cluster)
+table(df.train$cluster)
+```
+
+```{r}
+m.kmeans$centers
+```
+
+
+```{r}
+# 2. For test data, predict cluster based on features only
+predict_test_clusters <- function(df_test, kmeans_model) {
+  # # Scale test features using training parameters
+  # test_features <- df_test %>% select(-Calories)  # Exclude target
+  # test_scaled <- scale(test_features, 
+  #                     center = train_means[-which(names(train_means) == "Calories")],
+  #                     scale = train_sds[-which(names(train_sds) == "Calories")])
+  # 
+  # Find closest cluster center (using only feature dimensions)
+  feature_centers <- kmeans_model$centers[, -which(colnames(kmeans_model$centers) == "Calories")]
+  
+  distances <- apply(df_test, 1, function(x) {
+    apply(feature_centers, 1, function(center) {
+      sqrt(sum((x - center)^2))
+    })
+  })
+  
+  clusters <- apply(distances, 2, which.min)
+  return(as.factor(clusters))
+}
+
+df.val$cluster <- predict_test_clusters(df.val, m.kmeans)
+```
+
+
+## Try lm again
+
+```{r}
+data <- df.train 
+data$Sex <- as.factor(data$Sex)
+data <- data %>% select(-id)
+
+# Extract p-value from linear model
+m.lm <- lm('Calories ~ .', data)
+summary(m.lm)
+
+# Print custom evaluation metric
+pred <- as.vector(predict(m.lm, df.val))
+pred[pred<0] <- 0 # Remove negative calories prediction
+print(paste('RMSLE =', round(RMSLE(df.val$Calories, pred), 4)))
+```
