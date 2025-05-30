@@ -8,13 +8,14 @@ editor: visual
 
 ```{r}
 library(tidyverse)
+library(glmnet)
 ```
 
 ```{r}
 # Load data
 df <- read.csv(file = 'data/train.csv') %>% select(-id)
 head(df) # also shows types
-dim(df)
+print(dim(df))
 ```
 
 ```{r}
@@ -70,13 +71,6 @@ df.test <- df[idx_test, ]
 missing_values <- as.data.frame(colSums(is.na(df)))
 colnames(missing_values) <- 'Number of Missing Values'
 missing_values
-```
-
-```{r}
-# Set 'id' as index
-rownames(df) <- df$id
-df <- df %>% select(-'id')
-head(df)
 ```
 
 ```{r}
@@ -222,12 +216,12 @@ for (name_vec in name_pairs) {
 
 ```{r}
 # Extract p-value from linear model
-m.lm <- lm('Calories ~ . - id', df.train)
+m.lm <- lm('Calories ~ .', df.train)
 summary(m.lm)
 
 # Print custom evaluation metric
 pred <- as.vector(predict(m.lm, df.test))
-pred[pred<0] <- 0 # Remove negative calory prediction
+pred[pred<0] <- 0 # Remove negative calories prediction
 print(paste('RMSLE =', round(RMSLE(df.test$Calories, pred), 4)))
 ```
 
@@ -239,7 +233,7 @@ print(paste('RMSLE =', round(RMSLE(df.test$Calories, pred), 4)))
 
 First, let's perform Anderson-Darling Tests to discover which variables are mathematically skewed.
 
-```{r} 
+```{r}
 # Anderson-Darling Test 
 library(nortest)  
 
@@ -256,7 +250,7 @@ test_normality <- function(x) {
 # Apply to all numeric columns (except target variable) 
 normality <- df.train %>%    
   summarise(across(     
-    where(is.numeric) & !Calories, test_normality_ks 
+    where(is.numeric) & !Calories, test_normality
   )) %>%    
   pivot_longer(everything(), names_to = 'Variable', values_to = 'p_value')
 
@@ -288,16 +282,52 @@ df.train %>%
   labs(title = 'Q-Q Plots for Normality Assessment')
 ```
 
+Example with Body_Temp:
+
+```{r}
+library(forecast)
+
+# Box-Cox transformation of Body_Temp
+var_name <- 'Body_Temp'
+var_name2 <- paste0(var_name, '_transformed')
+
+lambda <- BoxCox.lambda(df.train[[var_name]] %>% sample(size=1e5))
+df.train_trans <- BoxCox(df.train[[var_name]], lambda)
+
+# Compare boxcox transformation (plot)
+compare_transformation <- data.frame(
+  df.train[var_name],
+  df.train_trans
+)
+
+colnames(compare_transformation) <- c(var_name, var_name2)
+
+# Histograms
+compare_transformation %>% 
+  ggplot(aes(y=..density..)) +
+  geom_histogram(aes(x=.data[[var_name]]), fill='black', alpha=.4) +
+  geom_histogram(aes(x=.data[[var_name2]]), fill='salmon', alpha=.4)
+
+# Q-Q Plot
+compare_transformation %>% 
+  sample_n(1e3) %>% 
+  pivot_longer(everything(), names_to = 'Variable', values_to = 'Value') %>% 
+  ggplot(aes(sample = Value)) +
+  stat_qq() +
+  stat_qq_line(color = 'red') +
+  facet_wrap(~Variable, scale = 'free')
+```
+
+Apply to all variables that need it:
+
 ```{r}
 # Transform
-library(forecast)
 df.train_trans <- df.train
+lambda <- list()
 
 for (var in vars_need_transform) {
-  if(all( df.train[[var]] > 0, na.rm = T )) {
-    lambda <- BoxCox.lambda(df.train %>% sample_n(1e5) %>% select(all_of(var)))
-    df.train_trans[[paste0(var)]] <- BoxCox(df.train[[var]], lambda)
-  }
+  lambda[var] <- BoxCox.lambda(df.train[[var]] %>% sample(1e4))
+  df.train_trans[[var]] <- BoxCox(df.train[[var]], lambda[[var]])
 }
 
 df.train_trans %>% 
@@ -314,26 +344,52 @@ df.train_trans %>%
   labs(title = 'Q-Q Plots for Normality Assessment')
 ```
 
+```{r}
+# Store transformation
+df.train[, vars_need_transform] <- df.train_trans[, vars_need_transform]
+```
 
 
 ### Standardization
 
 ```{r}
-numeric_vars <- setdiff(df.train %>% select_if(is.numeric) %>% names(),
-                        'Calories')
+# Get numeric variables (but calories)
+numeric_vars <- setdiff(
+  df.train %>% select_if(is.numeric) %>% names(),
+  'Calories'
+)
+
+# Get original means and standard deviation for scaling
+numeric_mean_sd <- df.train %>% 
+  select(numeric_vars) %>% 
+  gather(key = 'variable', value = 'value', factor_key = T) %>% 
+  group_by(variable) %>% 
+  summarise(mean = mean(value), sd = sd(value), .groups = 'drop')
+
+# Scale train: (x - mean) / sd
 df.train <- df.train %>% 
   mutate(
     across(
-      where(is.numeric) & !Calories, 
-      ~(scale(.) %>% as.vector())
+      all_of(numeric_vars),
+      # Define anonymous function with instructions
+      ~{
+        # Get current column name accesed by across
+        col_name <- cur_column()
+        
+        # Extract mean and sd for this specific column
+        col_stats <- numeric_mean_sd %>% 
+          filter(variable == col_name)
+        
+        col_mean <- col_stats$mean
+        col_sd <- col_stats$sd
+        
+        # Apply scaling transformation
+        # .x is the current column being processed
+        (.x - col_mean) / col_sd
+      }
     )
   )
 
-df.val <- df.val %>% 
-  mutate(across(
-    where(is.numeric) & !Calories,
-    ~(scale(.) %>% as.vector())
-  ))
 head(df.train)
 ```
 
@@ -358,7 +414,7 @@ df.train %>%
   geom_point(aes(x=exp_Body_Temp, y=Calories), alpha=.3, color='red') 
 ```
 
-## Clustering: KMeans
+### Clustering: KMeans
 
 ```{r}
 m.kmeans <- kmeans(df.train %>% select_if(is.numeric), centers = 4, nstart = 25)
@@ -370,42 +426,39 @@ table(df.train$cluster)
 ```
 
 ```{r}
-m.kmeans$centers
-```
-
-
-```{r}
 # 2. For test data, predict cluster based on features only
 predict_test_clusters <- function(df_test, kmeans_model) {
-  # # Scale test features using training parameters
-  # test_features <- df_test %>% select(-Calories)  # Exclude target
-  # test_scaled <- scale(test_features, 
-  #                     center = train_means[-which(names(train_means) == "Calories")],
-  #                     scale = train_sds[-which(names(train_sds) == "Calories")])
-  # 
-  # Find closest cluster center (using only feature dimensions)
-  feature_centers <- kmeans_model$centers[, -which(colnames(kmeans_model$centers) == "Calories")]
+  # Find closest cluster centre (using only feature dimensions)
+  feature_centres <- subset(m.kmeans$centers, select = -Calories)
+  centre_names <- colnames(feature_centres)
   
-  distances <- apply(df_test, 1, function(x) {
-    apply(feature_centers, 1, function(center) {
-      sqrt(sum((x - center)^2))
-    })
-  })
+  # Test data frame
+  test_features <- df_test %>% select(centre_names) # Exclude target variable
   
+  # Calculate distance to every centre
+  distances <- apply(
+    test_features, 1, function(row) { # get every row
+      apply(feature_centres, 1, function(centre) { # get every centre
+        # Calculate Euclidean distance
+        sqrt(sum((row - centre)^2))
+      })
+    }
+  )
+  
+  # Select the cluster closest to the specific row
   clusters <- apply(distances, 2, which.min)
   return(as.factor(clusters))
 }
 
 df.val$cluster <- predict_test_clusters(df.val, m.kmeans)
+head(df.val)
 ```
 
-
-## Try lm again
+### Try lm again
 
 ```{r}
 data <- df.train 
 data$Sex <- as.factor(data$Sex)
-data <- data %>% select(-id)
 
 # Extract p-value from linear model
 m.lm <- lm('Calories ~ .', data)
@@ -416,3 +469,116 @@ pred <- as.vector(predict(m.lm, df.val))
 pred[pred<0] <- 0 # Remove negative calories prediction
 print(paste('RMSLE =', round(RMSLE(df.val$Calories, pred), 4)))
 ```
+
+-   Building cluster with a hybrid approach and using exp_Body_Temp has lowered RMSLE from \~0.5 to \~0.4.
+
+### Final Pipeline (apply to validation and test)
+
+```{r}
+pipeline <- function(data) {
+  # --- Box-Cox transform ---
+  for (var in vars_need_transform) {
+    data[var] <- BoxCox(data[[var]], lambda[[var]])
+  }
+  
+  # --- Scaling from numeric_mean_sd (original mean and sd) ---
+  # Get named vector of means and standard deviations
+  means_vec <- setNames(object = numeric_mean_sd$mean, 
+                        nm = numeric_mean_sd$variable)
+  sds_vec <- setNames(object = numeric_mean_sd$sd, 
+                        nm = numeric_mean_sd$variable)
+  
+  # Scale the data using the named vectors
+  data <- data %>% 
+    mutate(
+      across(
+        all_of(numeric_vars),
+        ~( (.x - means_vec[cur_column()]) / sds_vec[cur_column()] )
+      )
+    )
+  
+  # --- Exponentiation of Body_Temp ---
+  data$exp_Body_Temp <- exp(data$Body_Temp)
+  
+  # --- KMeans Clustering ---
+  # For test and validation: predict cluster based on distance to centres
+  # (because those cannot access their "calories" values)
+  data$cluster <- predict_test_clusters(data, m.kmeans)
+  
+  return(data)
+}
+
+df.val <- pipeline(df.val)
+df.test <- pipeline(df.test)
+head(df.test)
+```
+
+## Modeling
+
+```{r}
+evaluate <- function(model, rmv.neg = TRUE) {
+  # Predictions
+  pred_val <- as.vector(predict(model, df.val))
+  pred_test <- as.vector(predict(model, df.test))
+  
+  # Remove negative calories prediction
+  if (rmv.neg) {
+    pred_val[pred_val<0] <- 0
+    pred_test[pred_test<0] <- 0
+  }
+  
+  # Print results
+  print(paste('Validation: RMSLE =', round(RMSLE(df.val$Calories, pred_val), 4)))
+  print(paste('Test: RMSLE =', round(RMSLE(df.test$Calories, pred_test), 4)))
+}
+```
+
+
+### Linear Model
+
+```{r}
+data <- df.train 
+data$Sex <- as.factor(data$Sex)
+
+# Extract p-value from linear model
+m.lm <- lm('Calories ~ .', data)
+summary(m.lm)
+
+# Print custom evaluation metric
+evaluate(m.lm)
+```
+
+### Generalised Linear Model
+
+```{r}
+m.glm <- glm('Calories ~ .', df.train, family = 'poisson')
+summary(m.glm)
+evaluate(m.glm)
+
+```
+
+### Regularization
+
+```{r}
+target <- 'Calories'
+indep <- setdiff(colnames(df.train), c('Calories', 'Sex'))
+X <- as.matrix(df.train[, indep])
+y <- df.train[, target]
+
+# Find best parameters with cross-validation
+cv_model <- cv.glmnet(x=X, y=y, alpha = 0.5)  # 0.5 = elastic net
+
+# Fit final model
+model <- glmnet(X, y, alpha = 0.5, lambda = cv_model$lambda.min)
+```
+
+```{r}
+pred <- predict(model, newx = as.matrix(df.val[, indep]))
+RMSLE(df.val$Calories, pred)
+
+coef(model)
+```
+
+
+
+
