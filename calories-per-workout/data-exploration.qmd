@@ -349,7 +349,6 @@ df.train_trans %>%
 df.train[, vars_need_transform] <- df.train_trans[, vars_need_transform]
 ```
 
-
 ### Standardization
 
 ```{r}
@@ -393,7 +392,9 @@ df.train <- df.train %>%
 head(df.train)
 ```
 
-### Variable Transforms: Body_Temp
+### Variable Transforms
+
+Body_Temp:
 
 ```{r}
 # Exponentiate Body_Temp
@@ -533,7 +534,6 @@ evaluate <- function(model, rmv.neg = TRUE) {
 }
 ```
 
-
 ### Linear Model
 
 ```{r}
@@ -574,11 +574,77 @@ model <- glmnet(X, y, alpha = 0.5, lambda = cv_model$lambda.min)
 
 ```{r}
 pred <- predict(model, newx = as.matrix(df.val[, indep]))
+pred[pred<0] <- 0
 RMSLE(df.val$Calories, pred)
 
 coef(model)
 ```
 
++ The main variables are: Duration, Heart_Rate, Body_Temp and exp_Body_Temp. The rest don't contribute as much
+
++ All variables are kept, indicating all of them are useful.
+
++ The change in coefficient sign in Body_Temp and exp_Body_Temp is interesting, but it might be caused by exp_Body_Temp being strictly positive and the elastic-net model itself — trying to balance the effeects of Body_Temp.
 
 
+## Feature Engineering: after checking variable importance
 
+```{r}
+feat.eng <- function(data) {
+  # Interaction terms for important variables
+  data$Duration_HeartRate <- data$Duration * data$Heart_Rate
+  data$Duration_expBodyTemp <- data$Duration * data$exp_Body_Temp
+  data$HeartRate_expBodyTemp <- data$Heart_Rate * data$exp_Body_Temp
+  
+  # Other transformations of body temperature
+  data$Body_Temp_sq <- data$Body_Temp ^ 2
+  
+  data
+}
+
+df.train <- feat.eng(df.train)
+df.val <- feat.eng(df.val)
+df.test <- feat.eng(df.test)
+head(df.train)
+```
+
+Update clusters:
+```{r}
+m.kmeans <- kmeans(df.train %>% select_if(is.numeric), centers = 4, nstart = 25)
+
+# Cluster distribution
+df.train$cluster <- as.factor(m.kmeans$cluster)
+table(df.train$cluster)
+```
+
+```{r}
+# Update clusters
+df.val$cluster <- predict_test_clusters(df.val, m.kmeans)
+df.test$cluster <- predict_test_clusters(df.test, m.kmeans)
+head(df.val)
+```
+
+
+```{r}
+# Regularization
+target <- 'Calories'
+indep <- setdiff(colnames(df.train), c('Calories', 'Sex'))
+X <- as.matrix(df.train[, indep])
+y <- df.train[, target]
+
+# Find best parameters with cross-validation
+cv_model <- cv.glmnet(x=X, y=y, alpha = 0.5)  # 0.5 = elastic net
+
+# Fit final model
+model <- glmnet(X, y, alpha = 0.5, lambda = cv_model$lambda.min)
+
+# Prediction
+pred <- predict(model, newx = as.matrix(df.val[, indep]))
+pred[pred<0] <- 0
+
+# Evaluation
+print(RMSLE(df.val$Calories, pred))
+
+# Coefficients
+coef(model)
+```
