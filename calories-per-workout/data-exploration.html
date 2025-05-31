@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Calory Lost Prediction</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="data-exploration_files/libs/clipboard/clipboard.min.js"></script>
+<script src="data-exploration_files/libs/quarto-html/quarto.js"></script>
+<script src="data-exploration_files/libs/quarto-html/popper.min.js"></script>
+<script src="data-exploration_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="data-exploration_files/libs/quarto-html/anchor.min.js"></script>
+<link href="data-exploration_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="data-exploration_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="data-exploration_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="data-exploration_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="data-exploration_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Calory Lost Prediction</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="initialization" class="level2">
+<h2 class="anchored" data-anchor-id="initialization">Initialization</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'tidyverse' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'ggplot2' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'dplyr' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnet)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Matrix
+
+Attaching package: 'Matrix'
+
+The following objects are masked from 'package:tidyr':
+
+    expand, pack, unpack
+
+Loaded glmnet 4.1-8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mgcv)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: nlme
+
+Attaching package: 'nlme'
+
+The following object is masked from 'package:dplyr':
+
+    collapse
+
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="at">file =</span> <span class="st">'data/train.csv'</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>id)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df) <span class="co"># also shows types</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     Sex Age Height Weight Duration Heart_Rate Body_Temp Calories
+1   male  36    189     82       26        101      41.0      150
+2 female  64    163     60        8         85      39.7       34
+3 female  51    161     64        7         84      39.8       29
+4   male  20    192     90       25        105      40.7      140
+5 female  38    166     61       25        102      40.6      146
+6 female  26    156     56       19        100      40.5      103</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">dim</span>(df))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 750000      8</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom Evaluation Metric</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>RMSLE <span class="ot">&lt;-</span> <span class="cf">function</span>(y_real, y_pred) {</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  N <span class="ot">&lt;-</span> <span class="fu">length</span>(y_real) <span class="co"># number of cases (real ones)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Check if both are the same length</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (N <span class="sc">!=</span> <span class="fu">length</span>(y_pred)) {</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="st">'Error: predictions and real values are not the same length'</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute summation</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    summation <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span>N)) {</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>      summation <span class="ot">&lt;-</span> summation <span class="sc">+</span> (<span class="fu">log</span>(<span class="dv">1</span> <span class="sc">+</span> y_pred[[i]]) <span class="sc">-</span> <span class="fu">log</span>(<span class="dv">1</span> <span class="sc">+</span> y_real[[i]]))<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute RMSLE</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">/</span>N <span class="sc">*</span> summation)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Train+validation and test samples sizes</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>sample_size_train_val <span class="ot">&lt;-</span> <span class="fu">floor</span>(<span class="fl">0.8</span> <span class="sc">*</span> <span class="fu">nrow</span>(df))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>sample_size_test <span class="ot">&lt;-</span> <span class="fu">floor</span>(<span class="fl">0.2</span> <span class="sc">*</span> <span class="fu">nrow</span>(df))</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Get indices: train and test</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>idx_train_val <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(df)), <span class="at">size =</span> sample_size_train_val))</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>idx_test <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(df)), idx_train_val)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract validation subset from train</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>idx_validation <span class="ot">&lt;-</span> <span class="fu">sort</span>(</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample</span>(idx_train_val, <span class="at">size =</span> sample_size_test) <span class="co"># same size as test</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>) </span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Update train, so it does not include validation</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>idx_train <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(idx_train_val, idx_validation)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Create three dataframes: training, validation and test</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>df.train <span class="ot">&lt;-</span> df[idx_train, ]</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>df.val <span class="ot">&lt;-</span> df[idx_validation, ]</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>df.test <span class="ot">&lt;-</span> df[idx_test, ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="cleaning-and-preprocessing" class="level2">
+<h2 class="anchored" data-anchor-id="cleaning-and-preprocessing">Cleaning and Preprocessing</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Missing values</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>missing_values <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">colSums</span>(<span class="fu">is.na</span>(df)))</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(missing_values) <span class="ot">&lt;-</span> <span class="st">'Number of Missing Values'</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>missing_values</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           Number of Missing Values
+Sex                               0
+Age                               0
+Height                            0
+Weight                            0
+Duration                          0
+Heart_Rate                        0
+Body_Temp                         0
+Calories                          0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove Duplicates</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">'Initial Data Frame Shape = '</span>, <span class="st">'('</span>, <span class="fu">nrow</span>(df), <span class="st">', '</span>, <span class="fu">ncol</span>(df), <span class="st">')'</span>, <span class="st">'.'</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">collapse=</span><span class="st">''</span>, <span class="at">sep =</span> <span class="st">''</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Initial Data Frame Shape = (750000, 8).</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">distinct</span>(df)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">'Final Data Frame Shape = '</span>, <span class="st">'('</span>, <span class="fu">nrow</span>(df), <span class="st">', '</span>, <span class="fu">ncol</span>(df), <span class="st">')'</span>, <span class="st">'.'</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">collapse=</span><span class="st">''</span>, <span class="at">sep =</span> <span class="st">''</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Final Data Frame Shape = (747159, 8).</code></pre>
+</div>
+</div>
+</section>
+<section id="eda" class="level2">
+<h2 class="anchored" data-anchor-id="eda">EDA</h2>
+<section id="univariate-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="univariate-analysis">Univariate Analysis</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> </span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(<span class="dv">2</span>, summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Age   Height    Weight Duration Heart_Rate Body_Temp  Calories
+Min.    20.00000 126.0000  36.00000  1.00000    67.0000   37.1000   1.00000
+1st Qu. 28.00000 164.0000  63.00000  8.00000    88.0000   39.6000  34.00000
+Median  40.00000 174.0000  74.00000 15.00000    95.0000   40.3000  77.00000
+Mean    41.41977 174.6948  75.14063 15.43336    95.4955   40.0373  88.36458
+3rd Qu. 52.00000 185.0000  87.00000 23.00000   103.0000   40.7000 136.00000
+Max.    79.00000 222.0000 132.00000 30.00000   128.0000   41.5000 314.00000</code></pre>
+</div>
+</div>
+<ul>
+<li>Workouts with a caloric loss of 1.0 seems strange.</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Is the data balanced in 'Sex'?</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="st">'Sex'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">table</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">prop.table</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sex
+   female      male 
+0.5009509 0.4990491 </code></pre>
+</div>
+</div>
+<ul>
+<li>It is balanced.</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Outliers</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span><span class="st">'Sex'</span>, <span class="at">names_to =</span> <span class="st">'Variable'</span>, <span class="at">values_to =</span> <span class="st">'Value'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>Value, <span class="at">y=</span>Variable, <span class="at">fill=</span>Sex, <span class="at">color=</span>Sex)) <span class="sc">+</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">alpha</span>(<span class="fu">c</span>(<span class="st">'salmon'</span>, <span class="st">'skyblue'</span>), .<span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li><p>Body_Temp has little variability.</p></li>
+<li><p>Height and Weight show the biggest amount of outliers.</p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get numerical variables names</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>col_names <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>()</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot all numerical variables</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (col_name <span class="cf">in</span> col_names) {</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Title label text</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  title <span class="ot">&lt;-</span> <span class="fu">paste</span>(col_name, <span class="st">'histogram and density function splitted by Sex'</span>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Histogram and Density Plot by 'Sex'</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  plt <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> </span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>.data[[col_name]])) <span class="sc">+</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y=</span>..density..), <span class="at">fill=</span><span class="st">'black'</span>, <span class="at">alpha=</span>.<span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">color=</span>Sex), <span class="at">size=</span><span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title=</span>title, <span class="at">x=</span>col_name) <span class="sc">+</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() </span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(plt)</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The dot-dot notation (`..density..`) was deprecated in ggplot2 3.4.0.
+ℹ Please use `after_stat(density)` instead.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-5.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-6.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-10-7.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li><p>Mostly the same, except for ‘Weight’, ‘Height’, ‘Body_Temp’ (slightly) and ‘Calories’.</p>
+<ul>
+<li><p><strong>Weight and Height:</strong> Men tend to be taller and heavier than women.</p></li>
+<li><p><strong>Calories:</strong> Women tend to lose an intermediate amount of calories, while men populate the highest and lowest values more.</p></li>
+<li><p><strong>Body_Temp:</strong> There seems to be a slightly higher amount of women at higher body temperatures than men.</p></li>
+</ul></li>
+<li><p>Age, Body_Temp and Calories show skewness, and Height and Weight don’t, but they are best centred separated by Sex.</p></li>
+</ul>
+</section>
+<section id="bivariate-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="bivariate-analysis">Bivariate Analysis</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Correlation matrix</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>corr <span class="ot">&lt;-</span> <span class="fu">cor</span>(df <span class="sc">%&gt;%</span> <span class="fu">select_if</span>(is.numeric))</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">as.data.frame</span>(<span class="fu">head</span>(corr))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  Age      Height       Weight    Duration   Heart_Rate
+Age        1.00000000  0.01195926  0.073679756  0.01560943  0.017038960
+Height     0.01195926  1.00000000  0.957877969 -0.02938258 -0.012746180
+Weight     0.07367976  0.95787797  1.000000000 -0.02032662 -0.001916613
+Duration   0.01560943 -0.02938258 -0.020326620  1.00000000  0.875120734
+Heart_Rate 0.01703896 -0.01274618 -0.001916613  0.87512073  1.000000000
+Body_Temp  0.03016798 -0.03376265 -0.022918949  0.90306509  0.795816201
+             Body_Temp     Calories
+Age         0.03016798  0.145774038
+Height     -0.03376265 -0.003554782
+Weight     -0.02291895  0.016333079
+Duration    0.90306509  0.959868710
+Heart_Rate  0.79581620  0.908643974
+Body_Temp   1.00000000  0.828692844</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot correlation matrix</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>corrplot<span class="sc">::</span><span class="fu">corrplot</span>(corr, <span class="at">method=</span><span class="st">'shade'</span>, <span class="at">order=</span><span class="st">'hclust'</span>, <span class="at">addrect=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li><p>Calories is heavily related to the duration of the workout, and by the heart rate and body temperature during it.</p></li>
+<li><p>Height, weight and age do not correlate well with the target variable.</p></li>
+<li><p>Height and weight are heavily correlated, same with body temperature and duration.</p></li>
+<li><p>Age does not correlate well with any other variable. It shows that the scope by age is wide, but also that the impact in calories may not be determined by it.</p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>name_pairs <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Height'</span>, <span class="st">'Weight'</span>), </span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Body_Temp'</span>, <span class="st">'Duration'</span>),</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Body_Temp'</span>, <span class="st">'Heart_Rate'</span>),</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Body_Temp'</span>, <span class="st">'Calories'</span>),</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Heart_Rate'</span>, <span class="st">'Calories'</span>),</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">'Duration'</span>, <span class="st">'Calories'</span>)</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Scatter plots</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name_vec <span class="cf">in</span> name_pairs) {</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Get names</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  name1 <span class="ot">&lt;-</span> name_vec[[<span class="dv">1</span>]]</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>  name2 <span class="ot">&lt;-</span> name_vec[[<span class="dv">2</span>]]</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Plot</span></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>  plt <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span> </span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sample_n</span>(<span class="fl">1e4</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>.data[[name1]], <span class="at">y=</span>.data[[name2]])) <span class="sc">+</span> </span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">size=</span><span class="dv">1</span>)</span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(plt)</span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-5.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-13-6.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<ul>
+<li><p>Exponential relationship between Body_temp and Calories. Transforming Body_Temp should improve predictions, although it could obtain a higher correlation with duration as well.</p></li>
+<li><p>Linear relationship between Heart_Rate and Calories with stable variability.</p></li>
+<li><p>Approximately linear relationship between Duration and Calories, but data variability increases with Duration.</p></li>
+</ul>
+</section>
+<section id="multivariate-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="multivariate-analysis">Multivariate Analysis</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract p-value from linear model</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>m.lm <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="st">'Calories ~ .'</span>, df.train)</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = "Calories ~ .", data = df.train)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-168.066   -6.841   -1.482    5.088  201.245 
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 512.343628   2.009384  254.98   &lt;2e-16 ***
+Sexmale      -1.704631   0.058987  -28.90   &lt;2e-16 ***
+Age           0.531285   0.001128  471.10   &lt;2e-16 ***
+Height       -0.148303   0.004689  -31.63   &lt;2e-16 ***
+Weight        0.272667   0.004930   55.31   &lt;2e-16 ***
+Duration      6.760677   0.005783 1169.10   &lt;2e-16 ***
+Heart_Rate    1.955073   0.003630  538.62   &lt;2e-16 ***
+Body_Temp   -18.251722   0.049557 -368.30   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 11.11 on 449992 degrees of freedom
+Multiple R-squared:  0.9683,    Adjusted R-squared:  0.9683 
+F-statistic: 1.962e+06 on 7 and 449992 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">predict</span>(m.lm, df.test))</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>pred[pred<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span> <span class="co"># Remove negative calories prediction</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">'RMSLE ='</span>, <span class="fu">round</span>(<span class="fu">RMSLE</span>(df.test<span class="sc">$</span>Calories, pred), <span class="dv">4</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSLE = 0.5707"</code></pre>
+</div>
+</div>
+<ul>
+<li>As of 28/05/2025 the best has a RMSLE score of 0.05624.</li>
+</ul>
+</section>
+</section>
+<section id="feature-engineering-and-variable-selection" class="level2">
+<h2 class="anchored" data-anchor-id="feature-engineering-and-variable-selection">Feature Engineering and Variable Selection</h2>
+<section id="box-cox-transform-reduce-skewness" class="level3">
+<h3 class="anchored" data-anchor-id="box-cox-transform-reduce-skewness">Box-Cox Transform: Reduce Skewness</h3>
+<p>First, let’s perform Anderson-Darling Tests to discover which variables are mathematically skewed.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Anderson-Darling Test </span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nortest)  </span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>test_normality <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {   </span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure complete data   </span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> ( <span class="fu">all</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(x)) <span class="sc">&gt;</span> <span class="dv">1</span> ) { </span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Perform Kolmogorov-Smirnov Test     </span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>( <span class="fu">ad.test</span>(x)<span class="sc">$</span>p.value )   </span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {     </span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NA</span>)   </span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>  } </span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>}  </span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply to all numeric columns (except target variable) </span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>normality <span class="ot">&lt;-</span> df.train <span class="sc">%&gt;%</span>    </span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(     </span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">where</span>(is.numeric) <span class="sc">&amp;</span> <span class="sc">!</span>Calories, test_normality</span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">%&gt;%</span>    </span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">'Variable'</span>, <span class="at">values_to =</span> <span class="st">'p_value'</span>)</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify variables that need transformation (p-value &lt; 0.05)</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>vars_need_transform <span class="ot">&lt;-</span> normality <span class="sc">%&gt;%</span> </span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_value <span class="sc">&lt;</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(p_value)) <span class="sc">%&gt;%</span> </span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(Variable)</span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste0</span>(</span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="st">'Variables needing transformation:</span><span class="sc">\n</span><span class="st">'</span>,</span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(vars_need_transform, <span class="at">collapse =</span> <span class="st">', '</span>),</span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>  <span class="st">'.'</span></span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Variables needing transformation:
+Age, Height, Weight, Duration, Heart_Rate, Body_Temp.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visual assessment</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>df.train <span class="sc">%&gt;%</span> </span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">where</span>(is.numeric), <span class="sc">-</span>Calories) <span class="sc">%&gt;%</span> </span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample_n</span>(<span class="fl">1e3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">'Variable'</span>, <span class="at">values_to =</span> <span class="st">'Value'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">sample =</span> Value)) <span class="sc">+</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq</span>() <span class="sc">+</span> </span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq_line</span>(<span class="at">color =</span> <span class="st">'red'</span>) <span class="sc">+</span></span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">'free'</span>) <span class="sc">+</span></span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> </span>
+<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">'Q-Q Plots for Normality Assessment'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Example with Body_Temp:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forecast)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'forecast' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Registered S3 method overwritten by 'quantmod':
+  method            from
+  as.zoo.data.frame zoo </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'forecast'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:nlme':
+
+    getResponse</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Box-Cox transformation of Body_Temp</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>var_name <span class="ot">&lt;-</span> <span class="st">'Body_Temp'</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>var_name2 <span class="ot">&lt;-</span> <span class="fu">paste0</span>(var_name, <span class="st">'_transformed'</span>)</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">BoxCox.lambda</span>(df.train[[var_name]] <span class="sc">%&gt;%</span> <span class="fu">sample</span>(<span class="at">size=</span><span class="fl">1e5</span>))</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>df.train_trans <span class="ot">&lt;-</span> <span class="fu">BoxCox</span>(df.train[[var_name]], lambda)</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare boxcox transformation (plot)</span></span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a>compare_transformation <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>  df.train[var_name],</span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>  df.train_trans</span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(compare_transformation) <span class="ot">&lt;-</span> <span class="fu">c</span>(var_name, var_name2)</span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Histograms</span></span>
+<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a>compare_transformation <span class="sc">%&gt;%</span> </span>
+<span id="cb54-18"><a href="#cb54-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y=</span>..density..)) <span class="sc">+</span></span>
+<span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x=</span>.data[[var_name]]), <span class="at">fill=</span><span class="st">'black'</span>, <span class="at">alpha=</span>.<span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x=</span>.data[[var_name2]]), <span class="at">fill=</span><span class="st">'salmon'</span>, <span class="at">alpha=</span>.<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Q-Q Plot</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>compare_transformation <span class="sc">%&gt;%</span> </span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample_n</span>(<span class="fl">1e3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">'Variable'</span>, <span class="at">values_to =</span> <span class="st">'Value'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">sample =</span> Value)) <span class="sc">+</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq</span>() <span class="sc">+</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq_line</span>(<span class="at">color =</span> <span class="st">'red'</span>) <span class="sc">+</span></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scale =</span> <span class="st">'free'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-17-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Apply to all variables that need it:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>df.train_trans <span class="ot">&lt;-</span> df.train</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (var <span class="cf">in</span> vars_need_transform) {</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  lambda[var] <span class="ot">&lt;-</span> <span class="fu">BoxCox.lambda</span>(df.train[[var]] <span class="sc">%&gt;%</span> <span class="fu">sample</span>(<span class="fl">1e4</span>))</span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  df.train_trans[[var]] <span class="ot">&lt;-</span> <span class="fu">BoxCox</span>(df.train[[var]], lambda[[var]])</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>df.train_trans <span class="sc">%&gt;%</span> </span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">where</span>(is.numeric), <span class="sc">-</span>Calories) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample_n</span>(<span class="fl">1e3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">'Variable'</span>, <span class="at">values_to =</span> <span class="st">'Value'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">sample =</span> Value)) <span class="sc">+</span></span>
+<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq</span>() <span class="sc">+</span> </span>
+<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq_line</span>(<span class="at">color =</span> <span class="st">'red'</span>) <span class="sc">+</span></span>
+<span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Variable, <span class="at">scales =</span> <span class="st">'free'</span>) <span class="sc">+</span></span>
+<span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb58-20"><a href="#cb58-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> </span>
+<span id="cb58-21"><a href="#cb58-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">'Q-Q Plots for Normality Assessment'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Store transformation</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>df.train[, vars_need_transform] <span class="ot">&lt;-</span> df.train_trans[, vars_need_transform]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="standardization" class="level3">
+<h3 class="anchored" data-anchor-id="standardization">Standardization</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get numeric variables (but calories)</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>numeric_vars <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  df.train <span class="sc">%&gt;%</span> <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> <span class="fu">names</span>(),</span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">'Calories'</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Get original means and standard deviation for scaling</span></span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a>numeric_mean_sd <span class="ot">&lt;-</span> df.train <span class="sc">%&gt;%</span> </span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(numeric_vars) <span class="sc">%&gt;%</span> </span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gather</span>(<span class="at">key =</span> <span class="st">'variable'</span>, <span class="at">value =</span> <span class="st">'value'</span>, <span class="at">factor_key =</span> T) <span class="sc">%&gt;%</span> </span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(variable) <span class="sc">%&gt;%</span> </span>
+<span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean =</span> <span class="fu">mean</span>(value), <span class="at">sd =</span> <span class="fu">sd</span>(value), <span class="at">.groups =</span> <span class="st">'drop'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+ℹ Please use `all_of()` or `any_of()` instead.
+  # Was:
+  data %&gt;% select(numeric_vars)
+
+  # Now:
+  data %&gt;% select(all_of(numeric_vars))
+
+See &lt;https://tidyselect.r-lib.org/reference/faq-external-vector.html&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: attributes are not identical across measure variables; they will be
+dropped</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Scale train: (x - mean) / sd</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>df.train <span class="ot">&lt;-</span> df.train <span class="sc">%&gt;%</span> </span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">all_of</span>(numeric_vars),</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Define anonymous function with instructions</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>      <span class="sc">~</span>{</span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get current column name accesed by across</span></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a>        col_name <span class="ot">&lt;-</span> <span class="fu">cur_column</span>()</span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Extract mean and sd for this specific column</span></span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>        col_stats <span class="ot">&lt;-</span> numeric_mean_sd <span class="sc">%&gt;%</span> </span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(variable <span class="sc">==</span> col_name)</span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a>        col_mean <span class="ot">&lt;-</span> col_stats<span class="sc">$</span>mean</span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>        col_sd <span class="ot">&lt;-</span> col_stats<span class="sc">$</span>sd</span>
+<span id="cb63-17"><a href="#cb63-17" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb63-18"><a href="#cb63-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Apply scaling transformation</span></span>
+<span id="cb63-19"><a href="#cb63-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># .x is the current column being processed</span></span>
+<span id="cb63-20"><a href="#cb63-20" aria-hidden="true" tabindex="-1"></a>        (.x <span class="sc">-</span> col_mean) <span class="sc">/</span> col_sd</span>
+<span id="cb63-21"><a href="#cb63-21" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb63-22"><a href="#cb63-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb63-23"><a href="#cb63-23" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb63-24"><a href="#cb63-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-25"><a href="#cb63-25" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df.train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Sex        Age     Height       Weight   Duration Heart_Rate   Body_Temp
+2  female  1.2597496 -0.9062065 -1.115261300 -0.7730690 -1.1056310 -0.44434527
+6  female -1.0441928 -1.4994721 -1.545584305  0.5210978  0.4607725  0.59426906
+7  female -1.7370035 -0.1775924  0.002132646 -1.7079884 -1.5036493 -2.21206541
+9  female -0.3435570 -0.6592325 -0.823037049  1.0605182  1.2296580  0.59426906
+12 female  0.2338083 -1.0732348 -0.823037049 -1.0952816 -0.4927715 -1.20970923
+14   male  1.0118099  1.0336558  1.090573335 -0.2342872  1.0076060  0.07237203
+   Calories
+2        34
+6       103
+7         9
+9       161
+12       28
+14       87</code></pre>
+</div>
+</div>
+</section>
+<section id="variable-transforms" class="level3">
+<h3 class="anchored" data-anchor-id="variable-transforms">Variable Transforms</h3>
+<p>Body_Temp:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Exponentiate Body_Temp</span></span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>exponentiate_body_temp <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">exp</span>( data<span class="sc">$</span>Body_Temp )</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>df.train[<span class="st">'exp_Body_Temp'</span>] <span class="ot">&lt;-</span> <span class="fu">exponentiate_body_temp</span>(df.train)</span>
+<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a>df.val[<span class="st">'exp_Body_Temp'</span>] <span class="ot">&lt;-</span> <span class="fu">exponentiate_body_temp</span>(df.val)</span>
+<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-11"><a href="#cb65-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot against Calories</span></span>
+<span id="cb65-12"><a href="#cb65-12" aria-hidden="true" tabindex="-1"></a>df.train <span class="sc">%&gt;%</span> </span>
+<span id="cb65-13"><a href="#cb65-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample_n</span>(<span class="fl">1e4</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb65-14"><a href="#cb65-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb65-15"><a href="#cb65-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(aes(x=Body_Temp, y=Calories), alpha=.3) +</span></span>
+<span id="cb65-16"><a href="#cb65-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x=</span>exp_Body_Temp, <span class="at">y=</span>Calories), <span class="at">alpha=</span>.<span class="dv">3</span>, <span class="at">color=</span><span class="st">'red'</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="clustering-kmeans" class="level3">
+<h3 class="anchored" data-anchor-id="clustering-kmeans">Clustering: KMeans</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>m.kmeans <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(df.train <span class="sc">%&gt;%</span> <span class="fu">select_if</span>(is.numeric), <span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>df.train<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(m.kmeans<span class="sc">$</span>cluster)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(df.train<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+     1      2      3      4 
+156227  71133 101032 121608 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. For test data, predict cluster based on features only</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>predict_test_clusters <span class="ot">&lt;-</span> <span class="cf">function</span>(df_test, kmeans_model) {</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Find closest cluster centre (using only feature dimensions)</span></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>  feature_centres <span class="ot">&lt;-</span> <span class="fu">subset</span>(m.kmeans<span class="sc">$</span>centers, <span class="at">select =</span> <span class="sc">-</span>Calories)</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>  centre_names <span class="ot">&lt;-</span> <span class="fu">colnames</span>(feature_centres)</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test data frame</span></span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>  test_features <span class="ot">&lt;-</span> df_test <span class="sc">%&gt;%</span> <span class="fu">select</span>(centre_names) <span class="co"># Exclude target variable</span></span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Calculate distance to every centre</span></span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>  distances <span class="ot">&lt;-</span> <span class="fu">apply</span>(</span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>    test_features, <span class="dv">1</span>, <span class="cf">function</span>(row) { <span class="co"># get every row</span></span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">apply</span>(feature_centres, <span class="dv">1</span>, <span class="cf">function</span>(centre) { <span class="co"># get every centre</span></span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Calculate Euclidean distance</span></span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sqrt</span>(<span class="fu">sum</span>((row <span class="sc">-</span> centre)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>      })</span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Select the cluster closest to the specific row</span></span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>  clusters <span class="ot">&lt;-</span> <span class="fu">apply</span>(distances, <span class="dv">2</span>, which.min)</span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">as.factor</span>(clusters))</span>
+<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb69-24"><a href="#cb69-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-25"><a href="#cb69-25" aria-hidden="true" tabindex="-1"></a>df.val<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">predict_test_clusters</span>(df.val, m.kmeans)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+ℹ Please use `all_of()` or `any_of()` instead.
+  # Was:
+  data %&gt;% select(centre_names)
+
+  # Now:
+  data %&gt;% select(all_of(centre_names))
+
+See &lt;https://tidyselect.r-lib.org/reference/faq-external-vector.html&gt;.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df.val)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Sex Age Height Weight Duration Heart_Rate Body_Temp Calories
+5  female  38    166     61       25        102      40.6      146
+11   male  20    186     89       21         94      40.3       86
+13   male  25    203     99       29        111      40.8      202
+22 female  32    171     71        7         82      39.7       23
+36   male  31    186     84       20        101      40.8      106
+43   male  78    158     59       20         94      40.7      133
+   exp_Body_Temp cluster
+5   4.288999e+17       1
+11  3.177369e+17       1
+13  5.238595e+17       1
+22  1.743777e+17       1
+36  5.238595e+17       1
+43  4.740077e+17       1</code></pre>
+</div>
+</div>
+</section>
+<section id="try-lm-again" class="level3">
+<h3 class="anchored" data-anchor-id="try-lm-again">Try lm again</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> df.train </span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>Sex <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(data<span class="sc">$</span>Sex)</span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract p-value from linear model</span></span>
+<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>m.lm <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="st">'Calories ~ .'</span>, data)</span>
+<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = "Calories ~ .", data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-131.113   -5.395   -0.674    4.500  157.286 
+
+Coefficients:
+               Estimate Std. Error  t value Pr(&gt;|t|)    
+(Intercept)    58.57844    0.06779  864.145  &lt; 2e-16 ***
+Sexmale        -0.32539    0.04814   -6.759 1.39e-11 ***
+Age             5.76782    0.01491  386.878  &lt; 2e-16 ***
+Height          1.13430    0.04869   23.297  &lt; 2e-16 ***
+Weight         -0.40300    0.05545   -7.268 3.65e-13 ***
+Duration       39.49590    0.06900  572.414  &lt; 2e-16 ***
+Heart_Rate     14.82557    0.03124  474.601  &lt; 2e-16 ***
+Body_Temp     -19.17808    0.06012 -319.014  &lt; 2e-16 ***
+exp_Body_Temp  12.35209    0.03905  316.304  &lt; 2e-16 ***
+cluster2       47.24937    0.12945  365.012  &lt; 2e-16 ***
+cluster3       17.92664    0.09500  188.707  &lt; 2e-16 ***
+cluster4        2.16293    0.05886   36.745  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 9.171 on 449988 degrees of freedom
+Multiple R-squared:  0.9784,    Adjusted R-squared:  0.9784 
+F-statistic: 1.853e+06 on 11 and 449988 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">predict</span>(m.lm, df.val))</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>pred[pred<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span> <span class="co"># Remove negative calories prediction</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">'RMSLE ='</span>, <span class="fu">round</span>(<span class="fu">RMSLE</span>(df.val<span class="sc">$</span>Calories, pred), <span class="dv">4</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSLE = 38.4092"</code></pre>
+</div>
+</div>
+<ul>
+<li>Building cluster with a hybrid approach and using exp_Body_Temp has lowered RMSLE from ~0.5 to ~0.4.</li>
+</ul>
+</section>
+<section id="final-pipeline-apply-to-validation-and-test" class="level3">
+<h3 class="anchored" data-anchor-id="final-pipeline-apply-to-validation-and-test">Final Pipeline (apply to validation and test)</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>pipeline <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># --- Box-Cox transform ---</span></span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (var <span class="cf">in</span> vars_need_transform) {</span>
+<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a>    data[var] <span class="ot">&lt;-</span> <span class="fu">BoxCox</span>(data[[var]], lambda[[var]])</span>
+<span id="cb77-5"><a href="#cb77-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb77-6"><a href="#cb77-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb77-7"><a href="#cb77-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># --- Scaling from numeric_mean_sd (original mean and sd) ---</span></span>
+<span id="cb77-8"><a href="#cb77-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Get named vector of means and standard deviations</span></span>
+<span id="cb77-9"><a href="#cb77-9" aria-hidden="true" tabindex="-1"></a>  means_vec <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="at">object =</span> numeric_mean_sd<span class="sc">$</span>mean, </span>
+<span id="cb77-10"><a href="#cb77-10" aria-hidden="true" tabindex="-1"></a>                        <span class="at">nm =</span> numeric_mean_sd<span class="sc">$</span>variable)</span>
+<span id="cb77-11"><a href="#cb77-11" aria-hidden="true" tabindex="-1"></a>  sds_vec <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="at">object =</span> numeric_mean_sd<span class="sc">$</span>sd, </span>
+<span id="cb77-12"><a href="#cb77-12" aria-hidden="true" tabindex="-1"></a>                        <span class="at">nm =</span> numeric_mean_sd<span class="sc">$</span>variable)</span>
+<span id="cb77-13"><a href="#cb77-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb77-14"><a href="#cb77-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Scale the data using the named vectors</span></span>
+<span id="cb77-15"><a href="#cb77-15" aria-hidden="true" tabindex="-1"></a>  data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> </span>
+<span id="cb77-16"><a href="#cb77-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb77-17"><a href="#cb77-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">across</span>(</span>
+<span id="cb77-18"><a href="#cb77-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">all_of</span>(numeric_vars),</span>
+<span id="cb77-19"><a href="#cb77-19" aria-hidden="true" tabindex="-1"></a>        <span class="sc">~</span>( (.x <span class="sc">-</span> means_vec[<span class="fu">cur_column</span>()]) <span class="sc">/</span> sds_vec[<span class="fu">cur_column</span>()] )</span>
+<span id="cb77-20"><a href="#cb77-20" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb77-21"><a href="#cb77-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb77-22"><a href="#cb77-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb77-23"><a href="#cb77-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># --- Exponentiation of Body_Temp ---</span></span>
+<span id="cb77-24"><a href="#cb77-24" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>exp_Body_Temp <span class="ot">&lt;-</span> <span class="fu">exp</span>(data<span class="sc">$</span>Body_Temp)</span>
+<span id="cb77-25"><a href="#cb77-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb77-26"><a href="#cb77-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># --- KMeans Clustering ---</span></span>
+<span id="cb77-27"><a href="#cb77-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># For test and validation: predict cluster based on distance to centres</span></span>
+<span id="cb77-28"><a href="#cb77-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># (because those cannot access their "calories" values)</span></span>
+<span id="cb77-29"><a href="#cb77-29" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">predict_test_clusters</span>(data, m.kmeans)</span>
+<span id="cb77-30"><a href="#cb77-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb77-31"><a href="#cb77-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(data)</span>
+<span id="cb77-32"><a href="#cb77-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb77-33"><a href="#cb77-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-34"><a href="#cb77-34" aria-hidden="true" tabindex="-1"></a>df.val <span class="ot">&lt;-</span> <span class="fu">pipeline</span>(df.val)</span>
+<span id="cb77-35"><a href="#cb77-35" aria-hidden="true" tabindex="-1"></a>df.test <span class="ot">&lt;-</span> <span class="fu">pipeline</span>(df.test)</span>
+<span id="cb77-36"><a href="#cb77-36" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df.test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Sex        Age     Height     Weight   Duration Heart_Rate  Body_Temp
+1    male -0.1055136  1.1061104  0.5967969  1.1437152  0.5691809  1.2539243
+3  female  0.7616083 -1.0732348 -0.7307874 -0.9282931 -1.2059392 -0.3156515
+4    male -1.9045647  1.3213375  1.0398420  1.0605182  1.0076060  0.8571600
+8    male  0.5183534  1.0336558  1.2372813  0.8888778  0.4607725  0.9890910
+10   male  1.2919932  0.8141034  0.9354691  0.8888778  0.8972861  1.2539243
+15 female  0.4101271  0.3647989  0.2809027 -1.0952816 -1.2059392 -0.9558828
+   Calories exp_Body_Temp cluster
+1       150     3.5040672       2
+3        29     0.7293135       1
+4       140     2.3564588       3
+8       145     2.6887893       2
+10      185     3.5040672       2
+15       23     0.3844726       1</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="modeling" class="level2">
+<h2 class="anchored" data-anchor-id="modeling">Modeling</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>evaluate <span class="ot">&lt;-</span> <span class="cf">function</span>(model, <span class="at">rmv.neg =</span> <span class="cn">TRUE</span>) {</span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Predictions</span></span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>  pred_val <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">predict</span>(model, df.val))</span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a>  pred_test <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">predict</span>(model, df.test))</span>
+<span id="cb79-5"><a href="#cb79-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb79-6"><a href="#cb79-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Remove negative calories prediction</span></span>
+<span id="cb79-7"><a href="#cb79-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (rmv.neg) {</span>
+<span id="cb79-8"><a href="#cb79-8" aria-hidden="true" tabindex="-1"></a>    pred_val[pred_val<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb79-9"><a href="#cb79-9" aria-hidden="true" tabindex="-1"></a>    pred_test[pred_test<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb79-10"><a href="#cb79-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb79-11"><a href="#cb79-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb79-12"><a href="#cb79-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Print results</span></span>
+<span id="cb79-13"><a href="#cb79-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">'Validation: RMSLE ='</span>, <span class="fu">round</span>(<span class="fu">RMSLE</span>(df.val<span class="sc">$</span>Calories, pred_val), <span class="dv">4</span>)))</span>
+<span id="cb79-14"><a href="#cb79-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">'Test: RMSLE ='</span>, <span class="fu">round</span>(<span class="fu">RMSLE</span>(df.test<span class="sc">$</span>Calories, pred_test), <span class="dv">4</span>)))</span>
+<span id="cb79-15"><a href="#cb79-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="linear-model" class="level3">
+<h3 class="anchored" data-anchor-id="linear-model">Linear Model</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> df.train </span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>Sex <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(data<span class="sc">$</span>Sex)</span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract p-value from linear model</span></span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>m.lm <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="st">'Calories ~ .'</span>, data)</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = "Calories ~ .", data = data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-131.113   -5.395   -0.674    4.500  157.286 
+
+Coefficients:
+               Estimate Std. Error  t value Pr(&gt;|t|)    
+(Intercept)    58.57844    0.06779  864.145  &lt; 2e-16 ***
+Sexmale        -0.32539    0.04814   -6.759 1.39e-11 ***
+Age             5.76782    0.01491  386.878  &lt; 2e-16 ***
+Height          1.13430    0.04869   23.297  &lt; 2e-16 ***
+Weight         -0.40300    0.05545   -7.268 3.65e-13 ***
+Duration       39.49590    0.06900  572.414  &lt; 2e-16 ***
+Heart_Rate     14.82557    0.03124  474.601  &lt; 2e-16 ***
+Body_Temp     -19.17808    0.06012 -319.014  &lt; 2e-16 ***
+exp_Body_Temp  12.35209    0.03905  316.304  &lt; 2e-16 ***
+cluster2       47.24937    0.12945  365.012  &lt; 2e-16 ***
+cluster3       17.92664    0.09500  188.707  &lt; 2e-16 ***
+cluster4        2.16293    0.05886   36.745  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 9.171 on 449988 degrees of freedom
+Multiple R-squared:  0.9784,    Adjusted R-squared:  0.9784 
+F-statistic: 1.853e+06 on 11 and 449988 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a><span class="fu">evaluate</span>(m.lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Validation: RMSLE = 0.4163"
+[1] "Test: RMSLE = 0.4186"</code></pre>
+</div>
+</div>
+</section>
+<section id="generalised-linear-model" class="level3">
+<h3 class="anchored" data-anchor-id="generalised-linear-model">Generalised Linear Model</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>m.glm <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="st">'Calories ~ .'</span>, df.train, <span class="at">family =</span> <span class="st">'poisson'</span>)</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.glm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = "Calories ~ .", family = "poisson", data = df.train)
+
+Coefficients:
+                Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)    4.2594790  0.0011036 3859.77   &lt;2e-16 ***
+Sexmale        0.0113188  0.0005632   20.10   &lt;2e-16 ***
+Age            0.0843622  0.0001804  467.53   &lt;2e-16 ***
+Height         0.0170205  0.0005648   30.13   &lt;2e-16 ***
+Weight        -0.0101797  0.0006441  -15.80   &lt;2e-16 ***
+Duration       0.5022947  0.0008448  594.55   &lt;2e-16 ***
+Heart_Rate     0.1860165  0.0003669  507.03   &lt;2e-16 ***
+Body_Temp      0.3482581  0.0010694  325.66   &lt;2e-16 ***
+exp_Body_Temp -0.1470381  0.0005105 -288.03   &lt;2e-16 ***
+cluster2       0.1370318  0.0016260   84.27   &lt;2e-16 ***
+cluster3       0.1350712  0.0012847  105.14   &lt;2e-16 ***
+cluster4       0.1191982  0.0009316  127.95   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 20941959  on 449999  degrees of freedom
+Residual deviance:   279234  on 449988  degrees of freedom
+AIC: 2958988
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">evaluate</span>(m.glm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Validation: RMSLE = 2.6384"
+[1] "Test: RMSLE = 2.6333"</code></pre>
+</div>
+</div>
+</section>
+<section id="regularization" class="level3">
+<h3 class="anchored" data-anchor-id="regularization">Regularization</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>target <span class="ot">&lt;-</span> <span class="st">'Calories'</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>indep <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">colnames</span>(df.train), <span class="fu">c</span>(<span class="st">'Calories'</span>, <span class="st">'Sex'</span>))</span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df.train[, indep])</span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> df.train[, target]</span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Find best parameters with cross-validation</span></span>
+<span id="cb88-7"><a href="#cb88-7" aria-hidden="true" tabindex="-1"></a>cv_model <span class="ot">&lt;-</span> <span class="fu">cv.glmnet</span>(<span class="at">x=</span>X, <span class="at">y=</span>y, <span class="at">alpha =</span> <span class="fl">0.5</span>)  <span class="co"># 0.5 = elastic net</span></span>
+<span id="cb88-8"><a href="#cb88-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb88-9"><a href="#cb88-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit final model</span></span>
+<span id="cb88-10"><a href="#cb88-10" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">glmnet</span>(X, y, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">lambda =</span> cv_model<span class="sc">$</span>lambda.min)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">newx =</span> <span class="fu">as.matrix</span>(df.val[, indep]))</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>pred[pred<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a><span class="fu">RMSLE</span>(df.val<span class="sc">$</span>Calories, pred)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.5401151</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>9 x 1 sparse Matrix of class "dgCMatrix"
+                       s0
+(Intercept)    71.6662655
+Age             7.7373554
+Height          0.9481012
+Weight         -0.3248694
+Duration       54.0080007
+Heart_Rate     20.7228699
+Body_Temp     -30.4950197
+exp_Body_Temp  19.7986833
+cluster        -4.9181210</code></pre>
+</div>
+</div>
+<ul>
+<li><p>The main variables are: Duration, Heart_Rate, Body_Temp and exp_Body_Temp. The rest don’t contribute as much</p></li>
+<li><p>All variables are kept, indicating all of them are useful.</p></li>
+<li><p>The change in coefficient sign in Body_Temp and exp_Body_Temp is interesting, but it might be caused by exp_Body_Temp being strictly positive and the elastic-net model itself — trying to balance the effeects of Body_Temp.</p></li>
+</ul>
+</section>
+</section>
+<section id="feature-engineering-after-checking-variable-importance" class="level2">
+<h2 class="anchored" data-anchor-id="feature-engineering-after-checking-variable-importance">Feature Engineering: after checking variable importance</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a>feat.eng <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Interaction terms for important variables</span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>Duration_HeartRate <span class="ot">&lt;-</span> data<span class="sc">$</span>Duration <span class="sc">*</span> data<span class="sc">$</span>Heart_Rate</span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>Duration_expBodyTemp <span class="ot">&lt;-</span> data<span class="sc">$</span>Duration <span class="sc">*</span> data<span class="sc">$</span>exp_Body_Temp</span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>HeartRate_expBodyTemp <span class="ot">&lt;-</span> data<span class="sc">$</span>Heart_Rate <span class="sc">*</span> data<span class="sc">$</span>exp_Body_Temp</span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-7"><a href="#cb93-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Other transformations of body temperature</span></span>
+<span id="cb93-8"><a href="#cb93-8" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>Body_Temp_sq <span class="ot">&lt;-</span> data<span class="sc">$</span>Body_Temp <span class="sc">^</span> <span class="dv">2</span></span>
+<span id="cb93-9"><a href="#cb93-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-10"><a href="#cb93-10" aria-hidden="true" tabindex="-1"></a>  data</span>
+<span id="cb93-11"><a href="#cb93-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb93-12"><a href="#cb93-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb93-13"><a href="#cb93-13" aria-hidden="true" tabindex="-1"></a>df.train <span class="ot">&lt;-</span> <span class="fu">feat.eng</span>(df.train)</span>
+<span id="cb93-14"><a href="#cb93-14" aria-hidden="true" tabindex="-1"></a>df.val <span class="ot">&lt;-</span> <span class="fu">feat.eng</span>(df.val)</span>
+<span id="cb93-15"><a href="#cb93-15" aria-hidden="true" tabindex="-1"></a>df.test <span class="ot">&lt;-</span> <span class="fu">feat.eng</span>(df.test)</span>
+<span id="cb93-16"><a href="#cb93-16" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df.train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Sex        Age     Height       Weight   Duration Heart_Rate   Body_Temp
+2  female  1.2597496 -0.9062065 -1.115261300 -0.7730690 -1.1056310 -0.44434527
+6  female -1.0441928 -1.4994721 -1.545584305  0.5210978  0.4607725  0.59426906
+7  female -1.7370035 -0.1775924  0.002132646 -1.7079884 -1.5036493 -2.21206541
+9  female -0.3435570 -0.6592325 -0.823037049  1.0605182  1.2296580  0.59426906
+12 female  0.2338083 -1.0732348 -0.823037049 -1.0952816 -0.4927715 -1.20970923
+14   male  1.0118099  1.0336558  1.090573335 -0.2342872  1.0076060  0.07237203
+   Calories exp_Body_Temp cluster Duration_HeartRate Duration_expBodyTemp
+2        34     0.6412440       1          0.8547291           -0.4957258
+6       103     1.8117062       3          0.2401075            0.9440760
+7         9     0.1094743       1          2.5682155           -0.1869808
+9       161     1.8117062       3          1.3040746            1.9213474
+12       28     0.2982840       1          0.5397236           -0.3267050
+14       87     1.0750552       4         -0.2360692           -0.2518717
+   HeartRate_expBodyTemp Body_Temp_sq
+2             -0.7089792  0.197442723
+6              0.8347844  0.353155719
+7             -0.1646110  4.893233396
+9              2.2277790  0.353155719
+12            -0.1469859  1.463396419
+14             1.0832321  0.005237711</code></pre>
+</div>
+</div>
+<p>Update clusters:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a>m.kmeans <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(df.train <span class="sc">%&gt;%</span> <span class="fu">select_if</span>(is.numeric), <span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Cluster distribution</span></span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>df.train<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(m.kmeans<span class="sc">$</span>cluster)</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(df.train<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+     1      2      3      4 
+103113  72753 150381 123753 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Update clusters</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>df.val<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">predict_test_clusters</span>(df.val, m.kmeans)</span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>df.test<span class="sc">$</span>cluster <span class="ot">&lt;-</span> <span class="fu">predict_test_clusters</span>(df.test, m.kmeans)</span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df.val)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Sex         Age     Height     Weight   Duration Heart_Rate  Body_Temp
+5  female  0.03790164 -0.6592325 -1.0151606  1.0605182  0.6780710  0.7255527
+11   male -1.90456470  0.8876561  0.9881503  0.7094542 -0.1794092  0.3326731
+13   male -1.16661637  2.0844140  1.4650055  1.3839719  1.6793428  0.9890910
+22 female -0.42993383 -0.2567608 -0.1471347 -0.9282931 -1.4049519 -0.4443453
+36   male -0.52028050  0.8876561  0.7142184  0.6164754  0.5691809  0.9890910
+43   male  1.65520026 -1.3274612 -1.2182177  0.6164754 -0.1794092  0.8571600
+   Calories exp_Body_Temp cluster Duration_HeartRate Duration_expBodyTemp
+5       146      2.065872       1          0.7191066            2.1908953
+11       86      1.394691       4         -0.1272826            0.9894696
+13      202      2.688789       2          2.3241632            3.7212089
+22       23      0.641244       3          1.3042071           -0.5952624
+36      106      2.688789       1          0.3508860            1.6575725
+43      133      2.356459       4         -0.1106014            1.4526989
+   HeartRate_expBodyTemp Body_Temp_sq
+5              1.4008082    0.5264267
+11            -0.2502205    0.1106714
+13             4.5153989    0.9783011
+22            -0.9009169    0.1974427
+36             1.5304074    0.9783011
+43            -0.4227704    0.7347232</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Regularization</span></span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>target <span class="ot">&lt;-</span> <span class="st">'Calories'</span></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>indep <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">colnames</span>(df.train), <span class="fu">c</span>(<span class="st">'Calories'</span>, <span class="st">'Sex'</span>))</span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df.train[, indep])</span>
+<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> df.train[, target]</span>
+<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-7"><a href="#cb99-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Find best parameters with cross-validation</span></span>
+<span id="cb99-8"><a href="#cb99-8" aria-hidden="true" tabindex="-1"></a>cv_model <span class="ot">&lt;-</span> <span class="fu">cv.glmnet</span>(<span class="at">x=</span>X, <span class="at">y=</span>y, <span class="at">alpha =</span> <span class="fl">0.5</span>)  <span class="co"># 0.5 = elastic net</span></span>
+<span id="cb99-9"><a href="#cb99-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-10"><a href="#cb99-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit final model</span></span>
+<span id="cb99-11"><a href="#cb99-11" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">glmnet</span>(X, y, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">lambda =</span> cv_model<span class="sc">$</span>lambda.min)</span>
+<span id="cb99-12"><a href="#cb99-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-13"><a href="#cb99-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Prediction</span></span>
+<span id="cb99-14"><a href="#cb99-14" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">newx =</span> <span class="fu">as.matrix</span>(df.val[, indep]))</span>
+<span id="cb99-15"><a href="#cb99-15" aria-hidden="true" tabindex="-1"></a>pred[pred<span class="sc">&lt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb99-16"><a href="#cb99-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-17"><a href="#cb99-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluation</span></span>
+<span id="cb99-18"><a href="#cb99-18" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">RMSLE</span>(df.val<span class="sc">$</span>Calories, pred))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.3733551</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coefficients</span></span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>13 x 1 sparse Matrix of class "dgCMatrix"
+                               s0
+(Intercept)           74.75619444
+Age                    7.53498071
+Height                 0.88095177
+Weight                 .         
+Duration              37.23475349
+Heart_Rate            21.79390982
+Body_Temp              .         
+exp_Body_Temp         -2.00930416
+cluster                0.03001478
+Duration_HeartRate    12.86136813
+Duration_expBodyTemp   7.47704566
+HeartRate_expBodyTemp -2.27051938
+Body_Temp_sq           0.40983643</code></pre>
+</div>
+</div>
+<p>Linear Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> df.train </span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>Sex <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(data<span class="sc">$</span>Sex)</span>
+<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb103-4"><a href="#cb103-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract p-value from linear model</span></span>
+<span id="cb103-5"><a href="#cb103-5" aria-hidden="true" tabindex="-1"></a>m.lm_2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="st">'Calories ~ . - Body_Temp'</span>, data)</span>
+<span id="cb103-6"><a href="#cb103-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.lm_2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = "Calories ~ . - Body_Temp", data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-88.274  -4.439  -0.929   3.543 171.972 
+
+Coefficients:
+                       Estimate Std. Error  t value Pr(&gt;|t|)    
+(Intercept)            80.92876    0.07805 1036.900  &lt; 2e-16 ***
+Sexmale                 0.19504    0.04133    4.719 2.37e-06 ***
+Age                     6.52936    0.01295  504.097  &lt; 2e-16 ***
+Height                  1.26652    0.04178   30.316  &lt; 2e-16 ***
+Weight                 -0.54534    0.04758  -11.462  &lt; 2e-16 ***
+Duration               34.79715    0.06808  511.149  &lt; 2e-16 ***
+Heart_Rate             18.50632    0.05722  323.431  &lt; 2e-16 ***
+exp_Body_Temp          -1.08789    0.04464  -24.368  &lt; 2e-16 ***
+cluster2               16.51899    0.06082  271.612  &lt; 2e-16 ***
+cluster3              -10.78037    0.08906 -121.041  &lt; 2e-16 ***
+cluster4               -7.82598    0.05526 -141.630  &lt; 2e-16 ***
+Duration_HeartRate      9.82115    0.03457  284.132  &lt; 2e-16 ***
+Duration_expBodyTemp    4.57637    0.04058  112.770  &lt; 2e-16 ***
+HeartRate_expBodyTemp  -1.95002    0.03458  -56.395  &lt; 2e-16 ***
+Body_Temp_sq            0.93047    0.01818   51.189  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.869 on 449985 degrees of freedom
+Multiple R-squared:  0.9841,    Adjusted R-squared:  0.9841 
+F-statistic: 1.989e+06 on 14 and 449985 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb105-2"><a href="#cb105-2" aria-hidden="true" tabindex="-1"></a><span class="fu">evaluate</span>(m.lm_2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Validation: RMSLE = 0.3304"
+[1] "Test: RMSLE = 0.3305"</code></pre>
+</div>
+</div>
+<p>BAM model (more efficient than GAM):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a>m.bam <span class="ot">&lt;-</span> <span class="fu">bam</span>(</span>
+<span id="cb107-2"><a href="#cb107-2" aria-hidden="true" tabindex="-1"></a>  Calories <span class="sc">~</span> <span class="fu">s</span>(Duration) <span class="sc">+</span> <span class="fu">s</span>(Heart_Rate) <span class="sc">+</span> <span class="fu">s</span>(Body_Temp),</span>
+<span id="cb107-3"><a href="#cb107-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> df.train,</span>
+<span id="cb107-4"><a href="#cb107-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">'fREML'</span> <span class="co">#fast REML</span></span>
+<span id="cb107-5"><a href="#cb107-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb107-6"><a href="#cb107-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb107-7"><a href="#cb107-7" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.bam)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Calories ~ s(Duration) + s(Heart_Rate) + s(Body_Temp)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 87.20673    0.01701    5128   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df       F p-value    
+s(Duration)   8.972  8.999 60220.1  &lt;2e-16 ***
+s(Heart_Rate) 8.902  8.995 39362.2  &lt;2e-16 ***
+s(Body_Temp)  8.296  8.819   470.6  &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.967   Deviance explained = 96.7%
+fREML = 1.7331e+06  Scale est. = 129.61    n = 450000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb109-2"><a href="#cb109-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">evaluate</span>(m.bam)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Validation: RMSLE = 0.1504"
+[1] "Test: RMSLE = 0.1513"</code></pre>
+</div>
+</div>
+<ul>
+<li><p>A high F score — extremely high for that matter —, means that the variables where non-linear. For instance, the score in s(Duration) can be understood like this variable explains 60717 times more variance than random noise, meaning that they are not just flat lines of noise.</p></li>
+<li><p>Some robustness is shown as well, due to the validation and test RMSLE being similar (and low).</p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize smooth functions</span></span>
+<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(m.bam, <span class="at">pages =</span> <span class="dv">1</span>, <span class="at">shade =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-38-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for any remaining patterns</span></span>
+<span id="cb113-2"><a href="#cb113-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gam.check</span>(m.bam)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Method: fREML   Optimizer: perf newton
+full convergence after 11 iterations.
+Gradient range [-0.001418264,0.00126438]
+(score 1733123 &amp; scale 129.613).
+Hessian positive definite, eigenvalue range [3.758208,224998].
+Model rank =  28 / 28 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k'.
+
+                k'  edf k-index p-value   
+s(Duration)   9.00 8.97    1.02    0.91   
+s(Heart_Rate) 9.00 8.90    0.97    0.01 **
+s(Body_Temp)  9.00 8.30    1.00    0.46   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<ul>
+<li><p>Residuals mostly look like a random cloud of points around zero (good sign!).</p></li>
+<li><p>k-index are close to one and the p-values (indicating if k-index is too small) discard the null hypothesis (also good news).</p></li>
+<li><p>Duration has a slightly lower than 1.0 k-index, which indicates that it might benefit from some more degrees of freedom.</p></li>
+</ul>
+<p>Let’s fine-tune the model to allow more flexibility in duration:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb115"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true" tabindex="-1"></a>m.bam2 <span class="ot">&lt;-</span> <span class="fu">bam</span>(</span>
+<span id="cb115-2"><a href="#cb115-2" aria-hidden="true" tabindex="-1"></a>  Calories <span class="sc">~</span> </span>
+<span id="cb115-3"><a href="#cb115-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(Duration, <span class="at">k=</span><span class="dv">12</span>) <span class="sc">+</span> </span>
+<span id="cb115-4"><a href="#cb115-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(Heart_Rate, <span class="at">k=</span><span class="dv">12</span>) <span class="sc">+</span> </span>
+<span id="cb115-5"><a href="#cb115-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(Body_Temp, <span class="at">k=</span><span class="dv">12</span>),</span>
+<span id="cb115-6"><a href="#cb115-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> df.train,</span>
+<span id="cb115-7"><a href="#cb115-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">'fREML'</span> <span class="co">#fast REML</span></span>
+<span id="cb115-8"><a href="#cb115-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb115-9"><a href="#cb115-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb115-10"><a href="#cb115-10" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m.bam2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Calories ~ s(Duration, k = 12) + s(Heart_Rate, k = 12) + s(Body_Temp, 
+    k = 12)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)   87.205      0.017    5128   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df       F p-value    
+s(Duration)   10.92  11.00 49216.2  &lt;2e-16 ***
+s(Heart_Rate) 10.84  10.99 32240.8  &lt;2e-16 ***
+s(Body_Temp)  10.68  10.96   390.2  &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.967   Deviance explained = 96.7%
+fREML = 1.733e+06  Scale est. = 129.51    n = 450000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb117"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print custom evaluation metric</span></span>
+<span id="cb117-2"><a href="#cb117-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">'</span><span class="sc">\n</span><span class="st">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">evaluate</span>(m.bam2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Validation: RMSLE = 0.1525"
+[1] "Test: RMSLE = 0.1527"</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for any remaining patterns</span></span>
+<span id="cb120-2"><a href="#cb120-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gam.check</span>(m.bam2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="data-exploration_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Method: fREML   Optimizer: perf newton
+full convergence after 11 iterations.
+Gradient range [-0.0007490949,0.0006256429]
+(score 1732962 &amp; scale 129.5084).
+Hessian positive definite, eigenvalue range [4.12739,224998].
+Model rank =  34 / 34 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k'.
+
+                k'  edf k-index p-value   
+s(Duration)   11.0 10.9    1.00   0.420   
+s(Heart_Rate) 11.0 10.8    0.96   0.005 **
+s(Body_Temp)  11.0 10.7    1.01   0.700   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<ul>
+<li>The model reached better k-indexes, but it also worsened validation predictions. Most likely, it is starting to over fit.</li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

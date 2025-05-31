@@ -9,6 +9,7 @@ editor: visual
 ```{r}
 library(tidyverse)
 library(glmnet)
+library(mgcv)
 ```
 
 ```{r}
@@ -648,3 +649,77 @@ print(RMSLE(df.val$Calories, pred))
 # Coefficients
 coef(model)
 ```
+
+Linear Model:
+```{r}
+data <- df.train 
+data$Sex <- as.factor(data$Sex)
+
+# Extract p-value from linear model
+m.lm_2 <- lm('Calories ~ . - Body_Temp', data)
+summary(m.lm_2)
+
+# Print custom evaluation metric
+evaluate(m.lm_2)
+```
+
+BAM model (more efficient than GAM):
+```{r}
+m.bam <- bam(
+  Calories ~ s(Duration) + s(Heart_Rate) + s(Body_Temp),
+  data = df.train,
+  method = 'fREML' #fast REML
+)
+
+summary(m.bam)
+
+# Print custom evaluation metric
+cat('\n')
+evaluate(m.bam)
+```
+
++ A high F score — extremely high for that matter —, means that the variables where non-linear. For instance, the score in s(Duration) can be understood like this variable explains 60717 times more variance than random noise, meaning that they are not just flat lines of noise.
+
++ Some robustness is shown as well, due to the validation and test RMSLE being similar (and low).
+
+```{r}
+# Visualize smooth functions
+plot(m.bam, pages = 1, shade = TRUE)
+```
+
+```{r}
+# Check for any remaining patterns
+gam.check(m.bam)
+```
+
++ Residuals mostly look like a random cloud of points around zero (good sign!).
+
++ k-index are close to one and the p-values (indicating if k-index is too small) discard the null hypothesis (also good news).
+
++ Duration has a slightly lower than 1.0 k-index, which indicates that it might benefit from some more degrees of freedom.
+
+Let's fine-tune the model to allow more flexibility in duration:
+
+```{r}
+m.bam2 <- bam(
+  Calories ~ 
+    s(Duration, k=12) + 
+    s(Heart_Rate, k=12) + 
+    s(Body_Temp, k=12),
+  data = df.train,
+  method = 'fREML' #fast REML
+)
+
+summary(m.bam2)
+
+# Print custom evaluation metric
+cat('\n')
+evaluate(m.bam2)
+```
+
+```{r}
+# Check for any remaining patterns
+gam.check(m.bam2)
+```
+
++ The model reached better k-indexes, but it also worsened validation predictions. Most likely, it is starting to over fit.
