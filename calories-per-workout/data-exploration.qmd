@@ -19,6 +19,17 @@ head(df) # also shows types
 print(dim(df))
 ```
 
+Submission file:
+```{r}
+# Read file
+df.submission <- read.csv(file = 'data/test.csv')
+
+# Store ids and remove from data frame
+submissions_ids <- df.submission$id
+df.submission <- df.submission %>% select(-id)
+```
+
+
 ```{r}
 # Custom Evaluation Metric
 RMSLE <- function(y_real, y_pred) {
@@ -399,14 +410,8 @@ Body_Temp:
 
 ```{r}
 # Exponentiate Body_Temp
-exponentiate_body_temp <- function(data) {
-  return(
-    exp( data$Body_Temp )
-  )
-}
-
-df.train['exp_Body_Temp'] <- exponentiate_body_temp(df.train)
-df.val['exp_Body_Temp'] <- exponentiate_body_temp(df.val)
+df.train['exp_Body_Temp'] <- exp(df.train$Body_Temp)
+df.val['exp_Body_Temp'] <- exp(df.val$Body_Temp)
 
 # Plot against Calories
 df.train %>% 
@@ -512,6 +517,7 @@ pipeline <- function(data) {
 
 df.val <- pipeline(df.val)
 df.test <- pipeline(df.test)
+df.submission <- pipeline(df.submission)
 head(df.test)
 ```
 
@@ -606,6 +612,7 @@ feat.eng <- function(data) {
 df.train <- feat.eng(df.train)
 df.val <- feat.eng(df.val)
 df.test <- feat.eng(df.test)
+df.submission <- feat.eng(df.submission)
 head(df.train)
 ```
 
@@ -622,6 +629,7 @@ table(df.train$cluster)
 # Update clusters
 df.val$cluster <- predict_test_clusters(df.val, m.kmeans)
 df.test$cluster <- predict_test_clusters(df.test, m.kmeans)
+df.submission$cluster <- predict_test_clusters(df.submission, m.kmeans)
 head(df.val)
 ```
 
@@ -723,3 +731,20 @@ gam.check(m.bam2)
 ```
 
 + The model reached better k-indexes, but it also worsened validation predictions. Most likely, it is starting to over fit.
+
+# Evaluate Submission Data
+```{r}
+pred <- predict(m.bam, df.submission)
+submission <- data.frame(
+  submissions_ids,
+  pred
+)
+
+# Required header
+colnames(submission) <- c('id', 'Calories')
+
+# Save file and show results
+write.csv(submission, file = 'output/submission_file.csv', row.names = FALSE)
+head(submission)
+```
+
